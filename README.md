@@ -18,7 +18,7 @@ Follow me on nostr [njump profile](https://njump.me/npub19ma2w9dmk3kat0nt0k5dwuq
 
 This application provides a user interface for participating in bounty/escrow workflows on Nostr. Users can take on different roles:
 
-- **Patron**: Create tasks, finalize agreements with **Arbiters**, and assign workers
+- **Patron**: Create tasks, finalize agreements with **Arbiters**, and assign Free Agents
 - **Arbiter**: Register as an escrow agent, accept tasks, and judge outcomes
 - **Free Agent**: Browse available tasks, submit applications, deliver work and get paid
 
