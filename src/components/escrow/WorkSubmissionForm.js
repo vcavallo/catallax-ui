@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNostr } from "@/lib/nostr";
 
-export default function WorkSubmissionForm() {
+export default function WorkSubmissionForm({ selectedEvent }) {
   const { publishEvent, publicKey } = useNostr();
   const [assignmentId, setAssignmentId] = useState("");
   const [creatorPubkey, setCreatorPubkey] = useState("");
   const [agentPubkey, setAgentPubkey] = useState("");
-  const [workDetails, setWorkDetails] = useState("");
+  const [submissionDetails, setSubmissionDetails] = useState("");
+
+  useEffect(() => {
+    if (selectedEvent && selectedEvent.kind === 3405) {
+      setAssignmentId(selectedEvent.id);
+      // Get pubkeys from p tags (worker, agent, creator)
+      const pubkeyTags = selectedEvent.tags.filter(([t]) => t === 'p');
+      if (pubkeyTags[2]) setCreatorPubkey(pubkeyTags[2][1]); // Creator is third p tag
+      if (pubkeyTags[1]) setAgentPubkey(pubkeyTags[1][1]); // Agent is second p tag
+    }
+  }, [selectedEvent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,13 +31,13 @@ export default function WorkSubmissionForm() {
     await publishEvent({
       kind: 3406,
       tags,
-      content: workDetails,
+      content: submissionDetails,
     });
 
     setAssignmentId("");
     setCreatorPubkey("");
     setAgentPubkey("");
-    setWorkDetails("");
+    setSubmissionDetails("");
   };
 
   return (
@@ -39,24 +49,27 @@ export default function WorkSubmissionForm() {
           placeholder="Assignment Event ID"
           value={assignmentId}
           onChange={(e) => setAssignmentId(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
           placeholder="Creator Pubkey"
           value={creatorPubkey}
           onChange={(e) => setCreatorPubkey(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
           placeholder="Agent Pubkey"
           value={agentPubkey}
           onChange={(e) => setAgentPubkey(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <textarea
           className="border p-2 w-full rounded"
-          placeholder="Work Details/Proof"
-          value={workDetails}
-          onChange={(e) => setWorkDetails(e.target.value)}
+          placeholder="Submission Details"
+          value={submissionDetails}
+          onChange={(e) => setSubmissionDetails(e.target.value)}
           rows={4}
         />
         <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600">

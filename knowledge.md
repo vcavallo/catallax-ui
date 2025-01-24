@@ -79,7 +79,7 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
   - Task Resolution (3407): Must be from escrow agent
 - Required tags vary by event kind:
   - Agent Registration (3400): ["r", terms_url], ["p", agent_pubkey] (must include agent's own pubkey)
-  - Task Proposal (3401): ["amount", sats], ["p", agent_pubkey], ["p", creator_pubkey]
+  - Task Proposal (3401): ["amount", sats], ["p", creator_pubkey], ["p", agent_pubkey] // Order of p tags matters: creator first, then agent
   - Task Acceptance (3402): ["e", task_id], ["p", creator_pubkey], ["p", agent_pubkey]
   - Task Finalization (3403): ["e", acceptance_id], ["e", zap_receipt], ["amount", sats], ["p", agent_pubkey], ["p", creator_pubkey]
   - Worker Application (3404): ["e", task_id], ["p", creator_pubkey], ["p", agent_pubkey], ["p", worker_pubkey]

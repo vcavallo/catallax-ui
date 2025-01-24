@@ -20,8 +20,8 @@ export default function TaskProposalForm() {
 
     const tags = [
       ["amount", amountSats],
-      ["p", agentPubkey],
       ["p", publicKey],  // Include our own pubkey as the creator
+      ["p", agentPubkey],  // Then the agent's pubkey
     ];
 
     await publishEvent({

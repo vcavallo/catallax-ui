@@ -13,11 +13,10 @@ export default function WorkerApplicationForm({ selectedEvent }) {
     if (selectedEvent && selectedEvent.kind === 3401) {
       setTaskId(selectedEvent.id);
       // Find creator and agent pubkeys from tags
-      const creatorTag = selectedEvent.tags.find(([t, p]) => t === 'p' && p !== agentPubkey);
-      const agentTag = selectedEvent.tags.find(([t, p]) => t === 'p' && p === agentPubkey);
-      
-      if (creatorTag) setCreatorPubkey(creatorTag[1]);
-      if (agentTag) setAgentPubkey(agentTag[1]);
+      const pubkeyTags = selectedEvent.tags.filter(([t]) => t === 'p');
+      // First p tag is creator, second is agent
+      if (pubkeyTags[0]) setCreatorPubkey(pubkeyTags[0][1]);
+      if (pubkeyTags[1]) setAgentPubkey(pubkeyTags[1][1]);
     }
   }, [selectedEvent]);
 
