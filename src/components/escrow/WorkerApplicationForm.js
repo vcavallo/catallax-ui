@@ -1,12 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNostr } from "@/lib/nostr";
 
-export default function WorkerApplicationForm() {
+export default function WorkerApplicationForm({ selectedEvent }) {
   const { publishEvent, publicKey } = useNostr();
   const [taskId, setTaskId] = useState("");
   const [creatorPubkey, setCreatorPubkey] = useState("");
   const [agentPubkey, setAgentPubkey] = useState("");
   const [applicationDetails, setApplicationDetails] = useState("");
+
+  // Pre-fill form when selectedEvent changes
+  useEffect(() => {
+    if (selectedEvent && selectedEvent.kind === 3401) {
+      setTaskId(selectedEvent.id);
+      // Find creator and agent pubkeys from tags
+      const creatorTag = selectedEvent.tags.find(([t, p]) => t === 'p' && p !== agentPubkey);
+      const agentTag = selectedEvent.tags.find(([t, p]) => t === 'p' && p === agentPubkey);
+      
+      if (creatorTag) setCreatorPubkey(creatorTag[1]);
+      if (agentTag) setAgentPubkey(agentTag[1]);
+    }
+  }, [selectedEvent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,18 +52,21 @@ export default function WorkerApplicationForm() {
           placeholder="Task Event ID"
           value={taskId}
           onChange={(e) => setTaskId(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
           placeholder="Creator Pubkey"
           value={creatorPubkey}
           onChange={(e) => setCreatorPubkey(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
           placeholder="Agent Pubkey"
           value={agentPubkey}
           onChange={(e) => setAgentPubkey(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <textarea
           className="border p-2 w-full rounded"

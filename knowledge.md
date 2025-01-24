@@ -53,6 +53,17 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 
 ## NIP-100 Implementation Notes
 
+## UI Patterns
+
+### Form Pre-filling
+- Forms should accept a selectedEvent prop
+- Use useEffect to watch selectedEvent changes and pre-fill form fields
+- Make pre-filled fields read-only
+- Clear form state after successful submission
+- Only show response forms when an event is selected
+- Show initial forms (Register/Propose) by default for Arbiter/Patron roles
+
+
 - Event kinds 3400-3407 for escrow workflow
 - Content should be JSON stringified for structured data (agent info, task details)
 - Each event after registration must reference previous events in the chain using "e" tags

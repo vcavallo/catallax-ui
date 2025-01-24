@@ -11,6 +11,17 @@ import EscrowEventsList from "@/components/escrow/EscrowEventsList";
 import { NostrProvider, useNostr } from "@/lib/nostr";
 import { useState } from "react";
 
+const KIND_LABELS = {
+  3400: "Agent Registration",
+  3401: "Task Proposal",
+  3402: "Agent Acceptance",
+  3403: "Task Finalization",
+  3404: "Worker Application",
+  3405: "Worker Assignment",
+  3406: "Work Submission",
+  3407: "Task Resolution",
+};
+
 const ROLES = {
   ARBITER: "Arbiter",
   PATRON: "Patron",
@@ -23,26 +34,46 @@ const ROLE_FORMS = {
   [ROLES.FREE_AGENT]: ["apply", "submit"]
 };
 
+// Forms that should be visible without clicking an event
+const INITIAL_FORMS = {
+  [ROLES.ARBITER]: ["register"],
+  [ROLES.PATRON]: ["propose"],
+  [ROLES.FREE_AGENT]: []
+};
+
 function EscrowDashboard() {
   const [activeRole, setActiveRole] = useState(ROLES.PATRON);
   const [activeForm, setActiveForm] = useState("propose");
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const { publicKey } = useNostr();
 
-  const forms = {
-    register: <AgentRegistrationForm />,
-    propose: <TaskProposalForm />,
-    accept: <AgentAcceptanceForm />,
-    finalize: <TaskFinalizationForm />,
-    apply: <WorkerApplicationForm />,
-    assign: <WorkerAssignmentForm />,
-    submit: <WorkSubmissionForm />,
-    resolve: <TaskResolutionForm />,
+  const handleEventSelect = (event) => {
+    setSelectedEvent(event);
+    setActiveForm(event.action);
   };
 
   const handleRoleChange = (role) => {
     setActiveRole(role);
-    // Set the first available form for this role as active
-    setActiveForm(ROLE_FORMS[role][0]);
+    setSelectedEvent(null);
+    // Set the first available initial form for this role as active
+    setActiveForm(INITIAL_FORMS[role][0] || ROLE_FORMS[role][0]);
+  };
+
+  // Only show form if it's an initial form or if we have a selected event
+  const shouldShowForm = (formKey) => {
+    if (selectedEvent && selectedEvent.action === formKey) return true;
+    return INITIAL_FORMS[activeRole].includes(formKey);
+  };
+
+  const forms = {
+    register: <AgentRegistrationForm />,
+    propose: <TaskProposalForm />,
+    accept: <AgentAcceptanceForm selectedEvent={selectedEvent} />,
+    finalize: <TaskFinalizationForm selectedEvent={selectedEvent} />,
+    apply: <WorkerApplicationForm selectedEvent={selectedEvent} />,
+    assign: <WorkerAssignmentForm selectedEvent={selectedEvent} />,
+    submit: <WorkSubmissionForm selectedEvent={selectedEvent} />,
+    resolve: <TaskResolutionForm selectedEvent={selectedEvent} />,
   };
 
   return (
@@ -77,7 +108,10 @@ function EscrowDashboard() {
             {ROLE_FORMS[activeRole].map((formKey) => (
               <button
                 key={formKey}
-                onClick={() => setActiveForm(formKey)}
+                onClick={() => {
+                  setActiveForm(formKey);
+                  setSelectedEvent(null);
+                }}
                 className={`px-3 py-1 rounded ${
                   activeForm === formKey
                     ? "bg-blue-500 text-white"
@@ -89,7 +123,16 @@ function EscrowDashboard() {
             ))}
           </div>
 
-          {forms[activeForm]}
+          {shouldShowForm(activeForm) && forms[activeForm]}
+          
+          {selectedEvent && (
+            <div className="mt-4 p-4 bg-blue-50 rounded">
+              <h3 className="font-bold mb-2">Selected Event:</h3>
+              <p className="text-sm">
+                {KIND_LABELS[selectedEvent.kind]} - {selectedEvent.id.slice(0, 8)}...
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="border rounded p-4">
@@ -97,10 +140,7 @@ function EscrowDashboard() {
           <EscrowEventsList 
             role={activeRole} 
             publicKey={publicKey}
-            onEventSelect={(event) => {
-              // This will be implemented in EscrowEventsList
-              console.log("Selected event:", event);
-            }}
+            onEventSelect={handleEventSelect}
           />
         </div>
       </div>
