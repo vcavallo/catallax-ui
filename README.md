@@ -11,7 +11,7 @@ I've built an [early relay implementation of the Kinds proposed in NIP-3400](htt
 
 Even if NIP-3400 is not accepted, Catallax may still be developed.
 
-There is not _yet_ a live relay that implements Catallax, but that will likely change over the next few weeks.  
+There is not _yet_ a live relay that implements Catallax, but that will likely change over the next few weeks - at which time you'll be able to play with an online demo.  
 Follow me on nostr [njump profile](https://njump.me/npub19ma2w9dmk3kat0nt0k5dwuqzvmg3va9ezwup0zkakhpwv0vcwvcsg8axkl) for updates, comment on [NIP-3400](https://github.com/nostr-protocol/nips/pull/1714), and leave feedback on this repo.
 
 ## Overview
