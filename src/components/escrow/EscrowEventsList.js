@@ -11,11 +11,40 @@ const KIND_LABELS = {
   3407: "Task Resolution",
 };
 
-export default function EscrowEventsList() {
+const ROLE_EVENT_FILTERS = {
+  "Arbiter": (events, pubkey) => events.filter(evt => 
+    // Show registrations from this pubkey
+    (evt.kind === 3400 && evt.pubkey === pubkey) ||
+    // Show task proposals where this pubkey is tagged as agent
+    (evt.kind === 3401 && evt.tags.some(([t, p]) => t === 'p' && p === pubkey)) ||
+    // Show acceptances and resolutions from this pubkey
+    ([3402, 3407].includes(evt.kind) && evt.pubkey === pubkey)
+  ),
+  "Patron": (events, pubkey) => events.filter(evt =>
+    // Show proposals created by this pubkey
+    (evt.kind === 3401 && evt.pubkey === pubkey) ||
+    // Show events related to tasks created by this pubkey
+    evt.tags.some(([t, p]) => t === 'p' && p === pubkey)
+  ),
+  "Free Agent": (events, pubkey) => events.filter(evt =>
+    // Show all open task proposals
+    evt.kind === 3401 ||
+    // Show applications from this pubkey
+    (evt.kind === 3404 && evt.pubkey === pubkey) ||
+    // Show assignments and submissions where this pubkey is tagged
+    ([3405, 3406].includes(evt.kind) && evt.tags.some(([t, p]) => t === 'p' && p === pubkey))
+  ),
+};
+
+export default function EscrowEventsList({ role, publicKey, onEventSelect }) {
   const { events } = useNostr();
 
-  // Filter only escrow events
-  const escrowEvents = events.filter(evt => evt.kind >= 3400 && evt.kind <= 3407);
+  // Filter escrow events by kind and role
+  const escrowEvents = events
+    .filter(evt => evt.kind >= 3400 && evt.kind <= 3407)
+    .sort((a, b) => b.created_at - a.created_at);
+
+  const filteredEvents = ROLE_EVENT_FILTERS[role]?.(escrowEvents, publicKey) || escrowEvents;
 
   const renderContent = (event) => {
     try {
@@ -39,17 +68,38 @@ export default function EscrowEventsList() {
     ));
   };
 
+  const getAvailableActions = (event) => {
+    const actions = [];
+    
+    switch (role) {
+      case "Arbiter":
+        if (event.kind === 3401) actions.push({ label: "Accept", form: "accept" });
+        if (event.kind === 3406) actions.push({ label: "Resolve", form: "resolve" });
+        break;
+      case "Patron":
+        if (event.kind === 3402) actions.push({ label: "Finalize", form: "finalize" });
+        if (event.kind === 3404) actions.push({ label: "Assign Worker", form: "assign" });
+        break;
+      case "Free Agent":
+        if (event.kind === 3401) actions.push({ label: "Apply", form: "apply" });
+        if (event.kind === 3405) actions.push({ label: "Submit Work", form: "submit" });
+        break;
+    }
+
+    return actions;
+  };
+
   return (
     <div className="mt-8">
       <h2 className="text-xl font-bold mb-4">NIP-100 Events</h2>
-      {escrowEvents.length === 0 && (
+      {filteredEvents.length === 0 && (
         <div className="p-4 border rounded bg-gray-50">
-          No escrow events found. Events will appear here after they are published.
+          No relevant events found for your role.
         </div>
       )}
 
       <div className="space-y-4">
-        {escrowEvents.map(event => (
+        {filteredEvents.map(event => (
           <div key={event.id} className="border p-4 rounded">
             <div className="flex justify-between items-start mb-2">
               <div>
@@ -69,6 +119,19 @@ export default function EscrowEventsList() {
 
             <div className="bg-gray-50 p-2 rounded mb-2">
               {renderContent(event)}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 mb-2">
+              {getAvailableActions(event).map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => onEventSelect({ ...event, action: action.form })}
+                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                >
+                  {action.label}
+                </button>
+              ))}
             </div>
 
             <div className="text-xs text-gray-500 space-y-1">
