@@ -14,6 +14,7 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - Publish and view notes
 - User authentication via browser extension (nos2x/Alby)
 - Responsive design with TailwindCSS
+- NIP-100 Escrow/Bounty system support
 
 ## Technical Notes
 
@@ -21,6 +22,8 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - Requires Nostr browser extension for signing
 - Real-time updates using WebSocket connection
 - Configuration files (postcss.config.mjs, tailwind.config.mjs, etc.) must use ES modules syntax with `export default`
+- Each page using NostrProvider must wrap its content with the provider, even if parent pages also use it
+- Components that need to reference the current user's pubkey should destructure it from useNostr along with any other needed methods
 
 ## Nostr Protocol Notes
 
@@ -38,6 +41,28 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
     sig: string  // Must be string from signedEvent.sig
   }
   ```
+
+## NIP-100 Implementation Notes
+
+- Event kinds 3400-3407 for escrow workflow
+- Content should be JSON stringified for structured data (agent info, task details)
+- Each event after registration must reference previous events in the chain using "e" tags
+- Events form chains: Proposal -> Acceptance -> Finalization -> Application -> Assignment -> Submission -> Resolution
+- Agent Registration (3400) events are standalone and not part of task chains
+- Event validation rules:
+  - Agent Acceptance (3402): Must be from agent referenced in task proposal
+  - Task Finalization (3403): Must reference valid agent acceptance
+  - Worker Assignment (3405): Must be from original task creator
+  - Task Resolution (3407): Must be from escrow agent
+- Required tags vary by event kind:
+  - Agent Registration (3400): ["r", terms_url], ["p", agent_pubkey] (must include agent's own pubkey)
+  - Task Proposal (3401): ["amount", sats], ["p", agent_pubkey]
+  - Task Acceptance (3402): ["e", task_id], ["p", creator_pubkey]
+  - Task Finalization (3403): ["e", acceptance_id], ["e", zap_receipt], ["amount", sats]
+  - Worker Application (3404): ["e", task_id], ["p", creator_pubkey], ["p", agent_pubkey]
+  - Worker Assignment (3405): ["e", task_id], ["e", application_id], ["p", worker_pubkey]
+  - Work Submission (3406): ["e", assignment_id], ["p", creator_pubkey], ["p", agent_pubkey]
+  - Task Resolution (3407): ["e", submission_id], ["e", zap_receipt], ["amount", sats]
 
 ## Dependencies
 

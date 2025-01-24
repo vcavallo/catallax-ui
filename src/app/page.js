@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import EventList from '@/components/EventList'
 import PublishForm from '@/components/PublishForm'
 import UserProfile from '@/components/UserProfile'
@@ -10,9 +11,17 @@ function Home() {
   
   return (
     <div className="container mx-auto p-4">
+      <div className="mb-4">
+        <Link 
+          href="/escrow" 
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+        >
+          Escrow Dashboard
+        </Link>
+      </div>
       <UserProfile publicKey={publicKey} />
       <PublishForm />
-      <EventList events={events} />
+      <EventList events={events.filter(e => e.kind === 1)} />
     </div>
   )
 }
