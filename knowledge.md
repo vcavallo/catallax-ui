@@ -18,7 +18,6 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 ## Technical Notes
 
 - Uses Next.js 13+ App Router with client-side components
-- Connects to Damus relay (wss://relay.damus.io)
 - Requires Nostr browser extension for signing
 - Real-time updates using WebSocket connection
 - Configuration files (postcss.config.mjs, tailwind.config.mjs, etc.) must use ES modules syntax with `export default`
@@ -26,7 +25,7 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 ## Nostr Protocol Notes
 
 - Event signature must be a string, not an object
-- When using window.nostr.signEvent(), extract just the sig string from the response
+- window.nostr.signEvent() returns an object with sig containing the actual signature string
 - Event structure:
   ```js
   {

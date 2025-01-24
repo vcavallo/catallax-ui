@@ -62,13 +62,13 @@ export function NostrProvider({ children }) {
 
     // Get the event hash before signing
     event.id = getEventHash(event);
-    
+
     // Sign the event and get signature as string
     const signedEvent = await window.nostr.signEvent(event);
-    
+
     // Extract just the signature string from the response
     const sig = signedEvent.sig;
-    
+
     // Create the final event object with the string signature
     const finalEvent = {
       kind: event.kind,
@@ -77,10 +77,10 @@ export function NostrProvider({ children }) {
       tags: event.tags,
       content: event.content,
       id: event.id,
-      sig: sig
+      sig: sig,
     };
-    
-    console.log('Event being sent:', finalEvent);
+
+    console.log("Event being sent:", finalEvent);
     socket.send(JSON.stringify(["EVENT", finalEvent]));
   };
 
