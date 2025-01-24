@@ -23,7 +23,16 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - Real-time updates using WebSocket connection
 - Configuration files (postcss.config.mjs, tailwind.config.mjs, etc.) must use ES modules syntax with `export default`
 - Each page using NostrProvider must wrap its content with the provider, even if parent pages also use it
-- Components that need to reference the current user's pubkey should destructure it from useNostr along with any other needed methods
+- Components that need to reference the current user's pubkey should destructure it from useNostr along with any other needed methods  - WebSocket connections should:
+    - Track connection status
+    - Deduplicate events by ID
+    - Implement reconnection with exponential backoff (starting at 1s, max 10s)
+    - Request full event history on each successful connection
+    - Use unique subscription IDs to avoid conflicts with other clients
+    - Set connection timeouts (5s recommended)
+    - Clean up event handlers before closing
+    - Handle all WebSocket close codes (1000-1015)
+    - Retry on any non-normal closure
 
 ## Nostr Protocol Notes
 
