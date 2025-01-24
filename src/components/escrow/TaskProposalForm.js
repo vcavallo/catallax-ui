@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/lib/nostr";
 
 export default function TaskProposalForm() {
-  const { publishEvent } = useNostr();
+  const { publishEvent, publicKey } = useNostr();
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -21,6 +21,7 @@ export default function TaskProposalForm() {
     const tags = [
       ["amount", amountSats],
       ["p", agentPubkey],
+      ["p", publicKey],  // Include our own pubkey as the creator
     ];
 
     await publishEvent({
