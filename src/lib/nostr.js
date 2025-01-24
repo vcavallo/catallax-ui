@@ -53,6 +53,7 @@ export function NostrProvider({ children }) {
         setEvents((prev) => {
           const newEvents = [data[2], ...prev];
           console.log("Updated events array:", newEvents);
+          console.log("Event kinds present:", newEvents.map(e => e.kind));
           return newEvents;
         });
       }

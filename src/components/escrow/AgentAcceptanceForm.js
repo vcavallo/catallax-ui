@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/lib/nostr";
 
 export default function AgentAcceptanceForm() {
-  const { publishEvent } = useNostr();
+  const { publishEvent, publicKey } = useNostr();
   const [taskId, setTaskId] = useState("");
   const [creatorPubkey, setCreatorPubkey] = useState("");
 
@@ -12,6 +12,7 @@ export default function AgentAcceptanceForm() {
     const tags = [
       ["e", taskId],
       ["p", creatorPubkey],
+      ["p", publicKey],  // Include our own pubkey as the agent
     ];
 
     await publishEvent({

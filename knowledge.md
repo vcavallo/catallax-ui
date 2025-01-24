@@ -49,6 +49,9 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - Each event after registration must reference previous events in the chain using "e" tags
 - Events form chains: Proposal -> Acceptance -> Finalization -> Application -> Assignment -> Submission -> Resolution
 - Agent Registration (3400) events are standalone and not part of task chains
+- Each event after registration must reference previous events in the chain using "e" tags
+- Acceptance events (3402) should only reference their task proposal
+- Later events may reference multiple previous events in the chain
 - Event validation rules:
   - Agent Acceptance (3402): Must be from agent referenced in task proposal
   - Task Finalization (3403): Must reference valid agent acceptance
@@ -57,12 +60,12 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - Required tags vary by event kind:
   - Agent Registration (3400): ["r", terms_url], ["p", agent_pubkey] (must include agent's own pubkey)
   - Task Proposal (3401): ["amount", sats], ["p", agent_pubkey], ["p", creator_pubkey]
-  - Task Acceptance (3402): ["e", task_id], ["p", creator_pubkey]
-  - Task Finalization (3403): ["e", acceptance_id], ["e", zap_receipt], ["amount", sats]
-  - Worker Application (3404): ["e", task_id], ["p", creator_pubkey], ["p", agent_pubkey]
-  - Worker Assignment (3405): ["e", task_id], ["e", application_id], ["p", worker_pubkey]
-  - Work Submission (3406): ["e", assignment_id], ["p", creator_pubkey], ["p", agent_pubkey]
-  - Task Resolution (3407): ["e", submission_id], ["e", zap_receipt], ["amount", sats]
+  - Task Acceptance (3402): ["e", task_id], ["p", creator_pubkey], ["p", agent_pubkey]
+  - Task Finalization (3403): ["e", acceptance_id], ["e", zap_receipt], ["amount", sats], ["p", agent_pubkey], ["p", creator_pubkey]
+  - Worker Application (3404): ["e", task_id], ["p", creator_pubkey], ["p", agent_pubkey], ["p", worker_pubkey]
+  - Worker Assignment (3405): ["e", task_id], ["e", application_id], ["p", worker_pubkey], ["p", agent_pubkey], ["p", creator_pubkey]
+  - Work Submission (3406): ["e", assignment_id], ["p", creator_pubkey], ["p", agent_pubkey], ["p", worker_pubkey]
+  - Task Resolution (3407): ["e", submission_id], ["e", zap_receipt], ["amount", sats], ["p", creator_pubkey], ["p", worker_pubkey], ["p", agent_pubkey]
 
 ## Dependencies
 

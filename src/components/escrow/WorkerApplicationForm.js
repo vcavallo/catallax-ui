@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/lib/nostr";
 
 export default function WorkerApplicationForm() {
-  const { publishEvent } = useNostr();
+  const { publishEvent, publicKey } = useNostr();
   const [taskId, setTaskId] = useState("");
   const [creatorPubkey, setCreatorPubkey] = useState("");
   const [agentPubkey, setAgentPubkey] = useState("");
@@ -15,6 +15,7 @@ export default function WorkerApplicationForm() {
       ["e", taskId],
       ["p", creatorPubkey],
       ["p", agentPubkey],
+      ["p", publicKey],  // Include our own pubkey as the worker
     ];
 
     await publishEvent({

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/lib/nostr";
 
 export default function TaskResolutionForm() {
-  const { publishEvent } = useNostr();
+  const { publishEvent, publicKey } = useNostr();
   const [submissionId, setSubmissionId] = useState("");
   const [zapReceiptId, setZapReceiptId] = useState("");
   const [creatorPubkey, setCreatorPubkey] = useState("");
@@ -25,6 +25,7 @@ export default function TaskResolutionForm() {
       ["e", zapReceiptId],
       ["p", creatorPubkey],
       ["p", workerPubkey],
+      ["p", publicKey],  // Include our own pubkey as the agent
     ];
 
     await publishEvent({

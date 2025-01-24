@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/lib/nostr";
 
 export default function TaskFinalizationForm() {
-  const { publishEvent } = useNostr();
+  const { publishEvent, publicKey } = useNostr();
   const [acceptanceId, setAcceptanceId] = useState("");
   const [zapReceiptId, setZapReceiptId] = useState("");
   const [amountSats, setAmountSats] = useState("");
@@ -16,6 +16,7 @@ export default function TaskFinalizationForm() {
       ["e", acceptanceId],
       ["e", zapReceiptId],
       ["p", agentPubkey],
+      ["p", publicKey],  // Include our own pubkey as the creator
     ];
 
     await publishEvent({

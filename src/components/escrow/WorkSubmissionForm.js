@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/lib/nostr";
 
 export default function WorkSubmissionForm() {
-  const { publishEvent } = useNostr();
+  const { publishEvent, publicKey } = useNostr();
   const [assignmentId, setAssignmentId] = useState("");
   const [creatorPubkey, setCreatorPubkey] = useState("");
   const [agentPubkey, setAgentPubkey] = useState("");
@@ -15,6 +15,7 @@ export default function WorkSubmissionForm() {
       ["e", assignmentId],
       ["p", creatorPubkey],
       ["p", agentPubkey],
+      ["p", publicKey],  // Include our own pubkey as the worker
     ];
 
     await publishEvent({

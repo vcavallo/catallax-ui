@@ -18,13 +18,16 @@ export default function EscrowEventsList() {
   const [selectedEventId, setSelectedEventId] = useState(null);
 
   // Filter only escrow events
-  const escrowEvents = events.filter((evt) => evt.kind >= 3400 && evt.kind <= 3407);
+  const escrowEvents = events.filter(
+    (evt) => evt.kind >= 3400 && evt.kind <= 3407
+  );
   console.log("All events:", events);
   console.log("Filtered escrow events:", escrowEvents);
 
   // Group events by task chain
   const taskChains = escrowEvents.reduce((chains, event) => {
     if (event.kind === 3401) {
+      console.log("Found task proposal:", event);
       // This is a task proposal - start of a new chain
       chains[event.id] = {
         proposal: event,
@@ -39,23 +42,55 @@ export default function EscrowEventsList() {
       // Look through all chains to find where this event belongs
       Object.keys(chains).forEach((taskId) => {
         const chain = chains[taskId];
-        const eventRefs = event.tags.filter(([t]) => t === 'e').map(([_, id]) => id);
-        
-        if (eventRefs.includes(taskId) || 
-            eventRefs.includes(chain.acceptance?.id) ||
-            eventRefs.includes(chain.finalization?.id) ||
-            chain.applications.some(app => eventRefs.includes(app.id)) ||
-            eventRefs.includes(chain.assignment?.id) ||
-            eventRefs.includes(chain.submission?.id)) {
-          
+        const eventRefs = event.tags
+          .filter(([t]) => t === "e")
+          .map(([_, id]) => id);
+
+        const matches =
+          event.kind === 3402
+            ? eventRefs.includes(taskId)
+            : eventRefs.includes(taskId) ||
+              eventRefs.includes(chain.acceptance?.id) ||
+              eventRefs.includes(chain.finalization?.id) ||
+              chain.applications.some((app) =>
+                eventRefs.includes(app.id)
+              ) ||
+              eventRefs.includes(chain.assignment?.id) ||
+              eventRefs.includes(chain.submission?.id);
+
+        if (matches) {
+          console.log("Matched event to chain:", {
+            eventKind: event.kind,
+            taskId,
+            chainBefore: { ...chain },
+          });
+
           switch (event.kind) {
-            case 3402: chain.acceptance = event; break;
-            case 3403: chain.finalization = event; break;
-            case 3404: chain.applications.push(event); break;
-            case 3405: chain.assignment = event; break;
-            case 3406: chain.submission = event; break;
-            case 3407: chain.resolution = event; break;
+            case 3402:
+              chain.acceptance = event;
+              break;
+            case 3403:
+              chain.finalization = event;
+              break;
+            case 3404:
+              chain.applications.push(event);
+              break;
+            case 3405:
+              chain.assignment = event;
+              break;
+            case 3406:
+              chain.submission = event;
+              break;
+            case 3407:
+              chain.resolution = event;
+              break;
           }
+
+          console.log("Updated chain:", {
+            eventKind: event.kind,
+            taskId,
+            chainAfter: { ...chain },
+          });
         }
       });
     }
@@ -65,7 +100,11 @@ export default function EscrowEventsList() {
   const renderContent = (event) => {
     try {
       const content = JSON.parse(event.content);
-      return <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(content, null, 2)}</pre>;
+      return (
+        <pre className="whitespace-pre-wrap text-xs">
+          {JSON.stringify(content, null, 2)}
+        </pre>
+      );
     } catch {
       return <p className="text-sm">{event.content}</p>;
     }
@@ -73,8 +112,8 @@ export default function EscrowEventsList() {
 
   const renderTags = (tags) => {
     return tags.map(([key, value], i) => (
-      <div 
-        key={i} 
+      <div
+        key={i}
         className="inline-block bg-gray-100 rounded px-2 py-1 text-xs mr-2 mb-2 cursor-pointer hover:bg-gray-200"
         onClick={() => navigator.clipboard.writeText(value)}
         title="Click to copy"
@@ -86,13 +125,13 @@ export default function EscrowEventsList() {
 
   const renderEvent = (event, isChild = false) => {
     if (!event) return null;
-    
+
     return (
-      <div 
-        key={event.id} 
+      <div
+        key={event.id}
         className={`border p-4 rounded mb-2 ${
-          selectedEventId === event.id ? 'bg-blue-50' : ''
-        } ${isChild ? 'ml-4' : ''}`}
+          selectedEventId === event.id ? "bg-blue-50" : ""
+        } ${isChild ? "ml-4" : ""}`}
       >
         <div className="flex justify-between items-start mb-2">
           <div>
@@ -105,25 +144,29 @@ export default function EscrowEventsList() {
             Kind: {event.kind}
           </span>
         </div>
-        
-        <div className="mb-2">
-          {renderTags(event.tags)}
-        </div>
+
+        <div className="mb-2">{renderTags(event.tags)}</div>
 
         <div className="bg-gray-50 p-2 rounded mb-2">
           {renderContent(event)}
         </div>
 
         <div className="text-xs text-gray-500 space-y-1">
-          <div className="cursor-pointer hover:text-gray-700" onClick={() => {
-            navigator.clipboard.writeText(event.id);
-            setSelectedEventId(event.id);
-          }}>
+          <div
+            className="cursor-pointer hover:text-gray-700"
+            onClick={() => {
+              navigator.clipboard.writeText(event.id);
+              setSelectedEventId(event.id);
+            }}
+          >
             ID: <span className="font-mono">{event.id}</span>
           </div>
-          <div className="cursor-pointer hover:text-gray-700" onClick={() => {
-            navigator.clipboard.writeText(event.pubkey);
-          }}>
+          <div
+            className="cursor-pointer hover:text-gray-700"
+            onClick={() => {
+              navigator.clipboard.writeText(event.pubkey);
+            }}
+          >
             Pubkey: <span className="font-mono">{event.pubkey}</span>
           </div>
         </div>
@@ -136,15 +179,18 @@ export default function EscrowEventsList() {
       <h2 className="text-xl font-bold mb-4">NIP-100 Events</h2>
       {escrowEvents.length === 0 && (
         <div className="p-4 border rounded bg-gray-50">
-          No escrow events found. Events will appear here after they are published.
+          No escrow events found. Events will appear here after they are
+          published.
         </div>
       )}
       {/* Agent Registrations */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-2">Agent Registrations</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          Agent Registrations
+        </h3>
         {escrowEvents
-          .filter(event => event.kind === 3400)
-          .map(event => renderEvent(event))}
+          .filter((event) => event.kind === 3400)
+          .map((event) => renderEvent(event))}
       </div>
 
       {/* Task Chains */}
@@ -152,7 +198,10 @@ export default function EscrowEventsList() {
         <div className="space-y-8">
           <h3 className="text-lg font-semibold mb-2">Task Chains</h3>
           {Object.entries(taskChains).map(([taskId, chain]) => (
-            <div key={taskId} className="border-l-4 border-blue-500 pl-4">
+            <div
+              key={taskId}
+              className="border-l-4 border-blue-500 pl-4"
+            >
               {renderEvent(chain.proposal)}
               {chain.acceptance && (
                 <div className="ml-4">
@@ -161,14 +210,17 @@ export default function EscrowEventsList() {
                     <div className="ml-4">
                       {renderEvent(chain.finalization, true)}
                       <div className="ml-4">
-                        {chain.applications.map(app => renderEvent(app, true))}
+                        {chain.applications.map((app) =>
+                          renderEvent(app, true)
+                        )}
                         {chain.assignment && (
                           <>
                             {renderEvent(chain.assignment, true)}
                             {chain.submission && (
                               <>
                                 {renderEvent(chain.submission, true)}
-                                {chain.resolution && renderEvent(chain.resolution, true)}
+                                {chain.resolution &&
+                                  renderEvent(chain.resolution, true)}
                               </>
                             )}
                           </>
