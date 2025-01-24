@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNostr } from "@/lib/nostr";
 
-export default function TaskResolutionForm() {
+export default function TaskResolutionForm({ selectedEvent }) {
   const { publishEvent, publicKey } = useNostr();
   const [submissionId, setSubmissionId] = useState("");
   const [zapReceiptId, setZapReceiptId] = useState("");
@@ -10,6 +10,16 @@ export default function TaskResolutionForm() {
   const [amountSats, setAmountSats] = useState("");
   const [resolution, setResolution] = useState("completed");
   const [resolutionDetails, setResolutionDetails] = useState("");
+
+  useEffect(() => {
+    if (selectedEvent && selectedEvent.kind === 3406) {
+      setSubmissionId(selectedEvent.id);
+      // Get pubkeys from p tags (creator, agent, worker)
+      const pubkeyTags = selectedEvent.tags.filter(([t]) => t === 'p');
+      if (pubkeyTags[0]) setCreatorPubkey(pubkeyTags[0][1]); // Creator is first p tag
+      if (pubkeyTags[2]) setWorkerPubkey(pubkeyTags[2][1]); // Worker is third p tag
+    }
+  }, [selectedEvent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,6 +62,7 @@ export default function TaskResolutionForm() {
           placeholder="Work Submission Event ID"
           value={submissionId}
           onChange={(e) => setSubmissionId(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
@@ -64,12 +75,14 @@ export default function TaskResolutionForm() {
           placeholder="Creator Pubkey"
           value={creatorPubkey}
           onChange={(e) => setCreatorPubkey(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
           placeholder="Worker Pubkey"
           value={workerPubkey}
           onChange={(e) => setWorkerPubkey(e.target.value)}
+          readOnly={!!selectedEvent}
         />
         <input
           className="border p-2 w-full rounded"
