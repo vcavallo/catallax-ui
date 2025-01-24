@@ -1,6 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Catallax - Escrow-backed bounties on nostr and Lightning
 
-## Getting Started
+_Value for Value for real_.
+
+A web application for managing bounties and escrow agreements on the Nostr network using [NIP-3400 (_pending_)](https://github.com/nostr-protocol/nips/pull/1714).
+
+## Early-stage pre-alpha warning!
+
+**Catallax is under active early development and is currently not guaranteed to work properly.**  
+I've built an [early relay implementation of the Kinds proposed in NIP-3400](https://github.com/vcavallo/khatru/blob/escrow/nip100.md), but it, too is under active development and the fate of NIP-3400 is yet to be determined.
+
+Even if NIP-3400 is not accepted, Catallax may still be developed.
+
+There is not _yet_ a live relay that implements Catallax, but that will likely change over the next few weeks.  
+Follow me on nostr [njump profile](https://njump.me/npub19ma2w9dmk3kat0nt0k5dwuqzvmg3va9ezwup0zkakhpwv0vcwvcsg8axkl) for updates, comment on [NIP-3400](https://github.com/nostr-protocol/nips/pull/1714), and leave feedback on this repo.
+
+## Overview
+
+This application provides a user interface for participating in bounty/escrow workflows on Nostr. Users can take on different roles:
+
+- **Patron**: Create tasks, finalize agreements with **Arbiters**, and assign workers
+- **Arbiter**: Register as an escrow agent, accept tasks, and judge outcomes
+- **Free Agent**: Browse available tasks, submit applications, deliver work and get paid
+
+## How It Works
+
+The application implements the NIP-3400 protocol for escrow workflows:
+
+1. Arbiters register themselves with terms and conditions
+2. Patrons create task proposals with requirements and bounty amounts
+3. Arbiters can accept task proposals and hold escrow
+4. Patrons finalize tasks by funding the escrow
+5. Free Agents can apply for tasks
+6. Patrons assign Free Agents to tasks
+7. Free Agents submit completed work
+8. Arbiters resolve tasks and release funds (or refund the Patron)
+
+**Catallax trust-maxxes**. We don't rely on blockchains or smart contracts for escrow or other agreements, but rather on trust and reputation. All activity will live forever(ish) in Nostr events, which allows positive reputation to flow to honest actors and for scammers, ruggers and cheaters to be forever besmirched.  
+This is a proper free market where anyone can participate and the goat-trails of **real value** will pave themselves down into highways of human flourishing.
+
+All interactions are performed through Nostr events.
+
+## Features
+
+- Role-based interface for Patrons, Arbiters, and Free Agents
+- Real-time event updates via WebSockets
+- Form validation and event chain verification
+
+## Technical Details
+
+- Built with Next.js 13+ App Router
+- TailwindCSS
+- WebSocket connection to Nostr relays
+- Supports NIP-3400 event kinds (3400-3407)
+- Browser extension integration for nostr login
+
+# Building
 
 First, run the development server:
 
@@ -28,9 +82,3 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
