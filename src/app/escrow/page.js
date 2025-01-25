@@ -8,6 +8,7 @@ import WorkerAssignmentForm from "@/components/escrow/WorkerAssignmentForm";
 import WorkSubmissionForm from "@/components/escrow/WorkSubmissionForm";
 import TaskResolutionForm from "@/components/escrow/TaskResolutionForm";
 import EscrowEventsList from "@/components/escrow/EscrowEventsList";
+import ZapComponent from "@/components/ZapComponent";
 import { NostrProvider, useNostr } from "@/lib/nostr";
 import { useState } from "react";
 
@@ -25,20 +26,20 @@ const KIND_LABELS = {
 const ROLES = {
   ARBITER: "Arbiter",
   PATRON: "Patron",
-  FREE_AGENT: "Free Agent"
+  FREE_AGENT: "Free Agent",
 };
 
 const ROLE_FORMS = {
   [ROLES.ARBITER]: ["register", "accept", "resolve"],
   [ROLES.PATRON]: ["propose", "finalize", "assign"],
-  [ROLES.FREE_AGENT]: ["apply", "submit"]
+  [ROLES.FREE_AGENT]: ["apply", "submit"],
 };
 
 // Forms that should be visible without clicking an event
 const INITIAL_FORMS = {
   [ROLES.ARBITER]: ["register"],
   [ROLES.PATRON]: ["propose"],
-  [ROLES.FREE_AGENT]: []
+  [ROLES.FREE_AGENT]: [],
 };
 
 function EscrowDashboard() {
@@ -81,6 +82,10 @@ function EscrowDashboard() {
       <h1 className="text-2xl font-bold mb-4">
         NIP-100 Escrow Dashboard
       </h1>
+      <ZapComponent
+        npub="npub19ma2w9dmk3kat0nt0k5dwuqzvmg3va9ezwup0zkakhpwv0vcwvcsg8axkl"
+        relays="wss://nos.lol,ws://localhost:3334"
+      />
 
       {/* Role Selection */}
       <div className="mb-6">
@@ -124,21 +129,24 @@ function EscrowDashboard() {
           </div>
 
           {shouldShowForm(activeForm) && forms[activeForm]}
-          
+
           {selectedEvent && (
             <div className="mt-4 p-4 bg-blue-50 rounded">
               <h3 className="font-bold mb-2">Selected Event:</h3>
               <p className="text-sm">
-                {KIND_LABELS[selectedEvent.kind]} - {selectedEvent.id.slice(0, 8)}...
+                {KIND_LABELS[selectedEvent.kind]} -{" "}
+                {selectedEvent.id.slice(0, 8)}...
               </p>
             </div>
           )}
         </div>
 
         <div className="border rounded p-4">
-          <div className="mb-2 text-sm text-gray-600">Event List Status:</div>
-          <EscrowEventsList 
-            role={activeRole} 
+          <div className="mb-2 text-sm text-gray-600">
+            Event List Status:
+          </div>
+          <EscrowEventsList
+            role={activeRole}
             publicKey={publicKey}
             onEventSelect={handleEventSelect}
           />

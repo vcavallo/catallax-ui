@@ -92,5 +92,11 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - @nostr-dev-kit/ndk: Nostr protocol implementation (replaces nostr-tools)
   - Events must be created with `new NDKEvent(ndk, eventData)` 
   - Events must be published with `event.publish()`
+- nostr-zap: Zap widget library
+  - Import { init, initTarget, injectCSS } from 'nostr-zap/src/view'
+  - Call injectCSS() once at app load
+  - Use initTarget() for individual buttons
+  - Buttons must have data-npub attribute
+  - Optional: data-note-id, data-relays attributes
 - TailwindCSS: Utility-first CSS framework
 - Next.js 13+: React framework with App Router
