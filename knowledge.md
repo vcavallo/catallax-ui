@@ -89,6 +89,8 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 
 ## Dependencies
 
-- nostr-tools: Nostr protocol implementation
+- @nostr-dev-kit/ndk: Nostr protocol implementation (replaces nostr-tools)
+  - Events must be created with `new NDKEvent(ndk, eventData)` 
+  - Events must be published with `event.publish()`
 - TailwindCSS: Utility-first CSS framework
 - Next.js 13+: React framework with App Router

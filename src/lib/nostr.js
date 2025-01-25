@@ -1,232 +1,68 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import { getEventHash } from "nostr-tools";
+import NDK, {
+  NDKEvent,
+  NDKNip07Signer,
+  NDKNip46Signer,
+} from "@nostr-dev-kit/ndk";
 
-const RELAY_URL = "ws://localhost:3334";  // Switch back to localhost
-const CLOSE_CODES = {
-  1000: "Normal Closure",
-  1001: "Going Away",
-  1002: "Protocol Error",
-  1003: "Unsupported Data",
-  1004: "Reserved",
-  1005: "No Status Received",
-  1006: "Abnormal Closure",
-  1007: "Invalid frame payload data",
-  1008: "Policy Violation",
-  1009: "Message too big",
-  1010: "Missing Extension",
-  1011: "Internal Error",
-  1012: "Service Restart",
-  1013: "Try Again Later",
-  1014: "Bad Gateway",
-  1015: "TLS Handshake"
-};
 const NostrContext = createContext();
+const nip07signer = new NDKNip07Signer();
 
 export function NostrProvider({ children }) {
   const [publicKey, setPublicKey] = useState("");
   const [events, setEvents] = useState([]);
-  const [socket, setSocket] = useState(null);
+  const [ndk, setNdk] = useState(null);
 
   useEffect(() => {
     const connectNostr = async () => {
-      console.log("Checking for Nostr extension...", {
-        windowNostr: window.nostr,
+      console.log("Initializing NDK...");
+
+      // Create a new NDK instance with explicit relays
+      const ndkInstance = new NDK({
+        signer: nip07signer,
+        explicitRelayUrls: ["ws://localhost:3334"],
       });
-      if (typeof window.nostr === "undefined") {
-        console.log("No Nostr extension found");
-        return;
-      }
-      try {
-        const pubkey = await window.nostr.getPublicKey();
-        setPublicKey(pubkey);
-      } catch (err) {
-        console.error("Error getting public key:", err);
-      }
-    };
-    connectNostr();
-  }, []);
-
-  // Track connection status
-  const [isConnected, setIsConnected] = useState(false);
-
-  // Handle WebSocket connection
-  useEffect(() => {
-    let ws = null;
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    const connect = () => {
-      if (retryCount >= maxRetries) {
-        console.log("Max retries reached, giving up");
-        return;
-      }
 
       try {
-        // Clean up existing connection if any
-        if (ws) {
-          console.log("Cleaning up existing connection");
-          ws.onclose = null; // Remove existing close handler
-          ws.onerror = null; // Remove existing error handler
-          ws.close();
+        // Connect to specified relays
+        await ndkInstance.connect();
+        console.log("NDK Connected");
+        setNdk(ndkInstance);
+
+        // Get signer from extension
+        if (typeof window.nostr !== "undefined") {
+          const pubkey = await window.nostr.getPublicKey();
+          setPublicKey(pubkey);
         }
 
-        console.log(`Connecting to relay: ${RELAY_URL} (attempt ${retryCount + 1}/${maxRetries})`);
-        ws = new WebSocket(RELAY_URL);
-
-        // Set a connection timeout
-        const connectionTimeout = setTimeout(() => {
-          if (ws.readyState !== WebSocket.OPEN) {
-            console.log("Connection timeout, closing socket");
-            ws.close();
-          }
-        }, 5000);
-
-        ws.onopen = () => {
-          clearTimeout(connectionTimeout);
-          console.log("WebSocket connected");
-          setIsConnected(true);
-          retryCount = 0;
-
-          // Generate a unique subscription ID for each connection
-          const subId = `sub_${Math.random().toString(36).slice(2, 9)}`;
-          console.log("Creating subscription:", subId);
-
-          // Request all existing events
-          ws.send(
-            JSON.stringify([
-              "REQ",
-              subId,
-              {
-                kinds: [1, 3400, 3401, 3402, 3403, 3404, 3405, 3406, 3407],
-                limit: 1000,
-              },
-            ])
-          );
-        };
-
-        ws.onmessage = (e) => {
-          const data = JSON.parse(e.data);
-          if (data[0] === "EVENT") {
-            setEvents((prev) => {
-              const existing = new Set(prev.map(e => e.id));
-              if (existing.has(data[2].id)) {
-                return prev;
-              }
-              return [data[2], ...prev];
-            });
-          }
-        };
-
-        ws.onclose = (event) => {
-          clearTimeout(connectionTimeout);
-          const closeReason = CLOSE_CODES[event.code] || "Unknown";
-          console.log("WebSocket disconnected:", {
-            code: event.code,
-            codeMeaning: closeReason,
-            reason: event.reason || "No reason provided",
-            wasClean: event.wasClean
-          });
-          setIsConnected(false);
-          setSocket(null);
-          
-          // Retry on any unexpected closure
-          if (event.code !== 1000) {
-            retryCount++;
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, max 10s
-            console.log(`Retrying connection in ${delay/1000} seconds...`);
-            setTimeout(connect, delay);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error("WebSocket error details:", {
-            error,
-            readyState: ws.readyState,
-            readyStateText: ["CONNECTING", "OPEN", "CLOSING", "CLOSED"][ws.readyState],
-            url: RELAY_URL
-          });
-        };
-
-        setSocket(ws);
-      } catch (error) {
-        console.error("Error setting up WebSocket:", error);
-        retryCount++;
-        if (retryCount < maxRetries) {
-          setTimeout(connect, 1000 * retryCount);
-        }
-      }
-
-      ws.onopen = () => {
-        console.log("WebSocket connected");
-        setIsConnected(true);
-        retryCount = 0;
-
-        // Generate a unique subscription ID for each connection
-        const subId = `sub_${Math.random().toString(36).slice(2, 9)}`;
-        console.log("Creating subscription:", subId);
-
-        // Request all existing events
-        ws.send(
-          JSON.stringify([
-            "REQ",
-            subId,
-            {
-              kinds: [1, 3400, 3401, 3402, 3403, 3404, 3405, 3406, 3407],
-              limit: 1000,
-            },
-          ])
+        // Subscribe to relevant events
+        const subscription = ndkInstance.subscribe(
+          {
+            kinds: [1, 3400, 3401, 3402, 3403, 3404, 3405, 3406, 3407],
+            limit: 1000,
+          },
+          { closeOnEose: false }
         );
-      };
 
-      ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        if (data[0] === "EVENT") {
+        subscription.on("event", (event) => {
           setEvents((prev) => {
-            // Deduplicate events by ID
-            const existing = new Set(prev.map(e => e.id));
-            if (existing.has(data[2].id)) {
+            const existing = new Set(prev.map((e) => e.id));
+            if (existing.has(event.id)) {
               return prev;
             }
-            return [data[2], ...prev];
+            return [event, ...prev];
           });
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.log("WebSocket disconnected:", {
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean
         });
-        setIsConnected(false);
-        setSocket(null);
-        
-        // Only retry if it wasn't a clean close
-        if (!event.wasClean) {
-          retryCount++;
-          if (retryCount < maxRetries) {
-            console.log(`Retrying connection in ${retryCount} seconds...`);
-            setTimeout(connect, 1000 * retryCount);
-          }
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error details:", {
-          error,
-          readyState: ws.readyState,
-          url: RELAY_URL
-        });
-      };
-
-      setSocket(ws);
+      } catch (err) {
+        console.error("Error connecting NDK:", err);
+      }
     };
 
-    connect();
+    connectNostr();
 
     return () => {
-      if (ws) {
-        ws.close();
+      if (ndk) {
+        ndk.pool.close();
       }
     };
   }, []);
@@ -301,25 +137,29 @@ export function NostrProvider({ children }) {
     return true;
   };
 
-  const publishEvent = async (eventFields) => {
-    if (!publicKey || !socket) return;
+  // example of a 'blocking event'
+  // const event = new NDKEvent(ndk, { kind: 1, content: 'My note
+  // content' });
+  // const publishedToRelays = await event.publish();
+  // console.log(publishedToRelays); // relays where the event has published to
 
-    const event = {
-      pubkey: publicKey,
-      created_at: Math.floor(Date.now() / 1000),
-      ...eventFields,
-    };
+  const publishEvent = async (eventFields) => {
+    if (!publicKey || !ndk) return;
 
     try {
       // Validate the event before publishing
-      validateEvent(event.kind, event.tags, publicKey);
+      validateEvent(eventFields.kind, eventFields.tags || [], publicKey);
 
-      event.id = getEventHash(event);
-      const signedEvent = await window.nostr.signEvent(event);
-      event.sig = signedEvent.sig;
+      // Create a new NDKEvent with our fields
+      const event = new NDKEvent(ndk, {
+        pubkey: publicKey,
+        created_at: Math.floor(Date.now() / 1000),
+        ...eventFields
+      });
 
-      console.log("Publishing event:", event);
-      socket.send(JSON.stringify(["EVENT", event]));
+      // Sign and publish the event
+      await event.publish();
+      console.log("Published event:", event);
     } catch (error) {
       console.error("Event validation failed:", error.message);
       alert(error.message);
