@@ -14,7 +14,7 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 - Publish and view notes
 - User authentication via browser extension (nos2x/Alby)
 - Responsive design with TailwindCSS
-- NIP-100 Escrow/Bounty system support
+- NIP-3400 Escrow/Bounty system support
 
 ## Technical Notes
 
@@ -51,7 +51,7 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
   }
   ```
 
-## NIP-100 Implementation Notes
+## NIP-3400 Implementation Notes
 
 ## UI Patterns
 
