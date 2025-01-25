@@ -33,6 +33,11 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
     - Clean up event handlers before closing
     - Handle all WebSocket close codes (1000-1015)
     - Retry on any non-normal closure
+  - WebLN payments complete immediately but zap receipts may be delayed or missing
+  - WebLN payments complete immediately without waiting for zap receipt
+  - QR code payments wait for zap receipt before completing
+  - WebLN payments should still listen for zap receipt with fallback to synthetic event
+  - Always close subscription pools to prevent memory leaks
 
 ## Nostr Protocol Notes
 
@@ -96,11 +101,23 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
   - QR code payments wait for zap receipt before completing
   - WebLN payments should still listen for zap receipt with fallback to synthetic event
   - Always close subscription pools to prevent memory leaks
+  - WebSocket connections should:
+    - Track connection status
+    - Deduplicate events by ID
+    - Implement reconnection with exponential backoff (starting at 1s, max 10s)
+    - Request full event history on each successful connection
+    - Use unique subscription IDs to avoid conflicts with other clients
+    - Set connection timeouts (5s recommended)
+    - Clean up event handlers before closing
+    - Handle all WebSocket close codes (1000-1015)
+    - Retry on any non-normal closure
   - WebLN payments complete immediately but zap receipts may be delayed or missing
   - WebLN payments complete immediately without waiting for zap receipt
   - QR code payments wait for zap receipt before completing
   - React strict mode causes double mounting - use initialization flags to prevent duplicate setup
   - Callbacks must be passed through all intermediate functions in the initialization chain
+  - WebLN payments should still listen for zap receipt with fallback to synthetic event
+  - Always close subscription pools to prevent memory leaks
   - Components using WebLN must handle both success and fallback paths
   - React strict mode causes double mounting - use initialization flags to prevent duplicate setup
   - Callbacks must be passed through all intermediate functions in the initialization chain

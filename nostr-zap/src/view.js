@@ -369,6 +369,7 @@ const renderAmountDialog = async ({
           console.log("WebLN payment successful");
           amountDialog.close();
           
+          // First trigger immediate success
           if (onZapComplete) {
             onZapComplete({ 
               kind: 9735,
@@ -376,6 +377,23 @@ const renderAmountDialog = async ({
               content: "WebLN payment successful"
             });
           }
+          
+          // Then listen for actual receipt
+          console.log("Setting up receipt listener for WebLN payment");
+          const closePool = listenForZapReceipt({
+            relays: normalizedRelays,  // Use normalized relays instead of raw relays string
+            invoice,
+            onSuccess: (zapReceipt) => {
+              console.log("Real zap receipt received:", zapReceipt);
+              console.log('closing pool')
+              closePool();
+            },
+          });
+          
+          // Clean up subscription after 30s if no receipt
+          setTimeout(() => {
+            closePool();
+          }, 30000);
         } catch (e) {
           console.log("WebLN failed, falling back to invoice dialog", e);
           return false;

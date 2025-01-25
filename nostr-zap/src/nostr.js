@@ -128,70 +128,45 @@ export const isNipO7ExtAvailable = () => {
 };
 
 export const listenForZapReceipt = ({ relays, invoice, onSuccess }) => {
-  console.log("listenForZapReceipt called with:", { 
-    relays, 
-    invoice, 
-    hasOnSuccess: !!onSuccess,
-    onSuccessType: typeof onSuccess
-  });
   const pool = new SimplePool();
   const normalizedRelays = Array.from(
     new Set([...relays, "wss://relay.nostr.band"])
   );
-  const closePool = () => {
-    if (pool) {
-      pool.close(normalizedRelays);
-    }
-  };
   const since = Math.round(Date.now() / 1000);
 
-  // check for zap receipt every 5 seconds
-  const intervalId = setInterval(() => {
-    console.log("Creating new subscription for zap receipt");
-    const sub = pool.sub(normalizedRelays, [
-      {
-        kinds: [9735],
-        since,
-      },
-    ]);
+  console.log("Setting up subscription for zap receipt with relays:", normalizedRelays);
+  
+  // Create a single subscription
+  const sub = pool.sub(normalizedRelays, [
+    {
+      kinds: [9735],
+      since,
+    },
+  ]);
 
-    sub.on("event", (event) => {
-      console.log("Subscription received event:", event);
-      console.log("Received potential zap receipt:", event);
-      const matchingTag = event.tags.find((t) => t[0] === "bolt11" && t[1] === invoice);
-      console.log("Matching tag found?", !!matchingTag, { tag: matchingTag });
-      
-      if (matchingTag) {
-        console.log("Found matching zap receipt!", {
-          event,
-          hasOnSuccess: !!onSuccess,
-          onSuccessType: typeof onSuccess
-        });
-        
-        try {
-          if (onSuccess) {
-            console.log("About to call onSuccess handler");
-            onSuccess(event);
-            console.log("Successfully called onSuccess handler");
-          } else {
-            console.log("No onSuccess handler provided");
-          }
-        } catch (err) {
-          console.error("Error in nostr.js onSuccess handler:", err);
-          console.error("Error details:", {
-            error: err,
-            errorMessage: err.message,
-            errorStack: err.stack
-          });
-        }
-        closePool();
-        clearInterval(intervalId);
+  sub.on('connect', (relay) => {
+    console.log(`Connected to relay: ${relay.url}`);
+  });
+
+  sub.on('disconnect', (relay) => {
+    console.log(`Disconnected from relay: ${relay.url}`);
+  });
+
+  sub.on("event", (event) => {
+    console.log("Received event:", event);
+    const matchingTag = event.tags.find((t) => t[0] === "bolt11" && t[1] === invoice);
+    if (matchingTag) {
+      console.log("Found matching zap receipt:", event);
+      if (onSuccess) {
+        onSuccess(event);
       }
-    });
-  }, 5000);
+      sub.unsub();
+      pool.close(normalizedRelays);
+    }
+  });
 
   return () => {
-    closePool();
-    clearInterval(intervalId);
+    sub.unsub();
+    pool.close(normalizedRelays);
   };
 };
