@@ -1,4 +1,9 @@
 import { useNostr } from "@/lib/nostr";
+import { LightningAddress } from "@getalby/lightning-tools";
+import { webln } from "@getalby/sdk";
+import "websocket-polyfill";
+import { finishEvent, getPublicKey } from "nostr-tools";
+import { hexToBytes } from "@noble/hashes/utils";
 
 const KIND_LABELS = {
   3400: "Agent Registration",
@@ -47,11 +52,7 @@ const ROLE_EVENT_FILTERS = {
     ),
 };
 
-export default function EscrowEventsList({
-  role,
-  publicKey,
-  onEventSelect,
-}) {
+export default function EscrowEventsList({ role, publicKey, onEventSelect }) {
   const { events } = useNostr();
 
   // Filter escrow events by kind and role
@@ -115,6 +116,77 @@ export default function EscrowEventsList({
     return actions;
   };
 
+  const albyZap = async (eventId) => {
+    const ln = new LightningAddress("vinney@minibits.cash");
+    await ln.fetch();
+    console.log("ln ", { ln });
+
+    const response = await ln.zap({
+      satoshi: 13,
+      comment: "Test zap",
+      relays: ["wss://relay.damus.io", "wss://nos.lol", "ws://localhost:3334"],
+      e: eventId,
+    });
+    console.log(response.preimage); // print the preimage
+    // fuck yes.
+    // 5ef1e1db126b18199ec63e4ce7f1231d10a75fea7b8ab31a3b19fe0cf8c6d088
+  };
+
+  const albyZapNWC = async (eventId) => {
+    // your private key is required to sign zap request events
+    const nostrPrivateKey = process.env.NOSTR_PRIVATE_KEY;
+    // NWC url will be used to pay the zap invoice.
+    // It can be created in advanced at nwc.getalby.com,
+    // or use webln.NostrWebLNProvider.withNewSecret() to generate a new one
+    //
+    // const nostrWalletConnectUrl = process.env.NWC_URL;
+    //
+    const nostrWalletConnectUrl = webln.NostrWebLNProvider.withNewSecret();
+
+    if (!nostrPrivateKey || !nostrWalletConnectUrl) {
+      throw new Error("Please set .env variables");
+    }
+
+    (async () => {
+      const nostrWeblnProvider = new webln.NostrWebLNProvider({
+        nostrWalletConnectUrl,
+      });
+      // or use nostrWeblnProvider.initNWC(); to get a new NWC url
+      const nostrProvider = {
+        getPublicKey: () =>
+          Promise.resolve(getPublicKey(hexToBytes(nostrPrivateKey))),
+        signEvent: (event) =>
+          Promise.resolve(finalizeEvent(event, hexToBytes(nostrPrivateKey))),
+      };
+
+      const ln = new LightningAddress("hello@getalby.com", {
+        webln: nostrWeblnProvider,
+      });
+      await ln.fetch();
+
+      // TODO:
+
+      if (!ln.nostrPubkey) {
+        throw new Error("No nostr pubkey available"); // seems the lightning address is no NIP05 address
+      }
+
+      const zapArgs = {
+        satoshi: 13,
+        comment: "Test zap",
+        relays: [
+          "wss://relay.damus.io",
+          "wss://nos.lol",
+          "ws://localhost:3334",
+        ],
+        e: eventId,
+      };
+
+      const response = await ln.zap(zapArgs, { nostr: nostrProvider }); // generates a zap invoice
+      console.info("Preimage", response.preimage); // print the preimage
+      nostrWeblnProvider.close();
+    })();
+  };
+
   return (
     <div className="mt-8">
       <h2 className="text-xl font-bold mb-4">NIP-100 Events</h2>
@@ -129,9 +201,7 @@ export default function EscrowEventsList({
           <div key={event.id} className="border p-4 rounded">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <span className="font-bold">
-                  {KIND_LABELS[event.kind]}
-                </span>
+                <span className="font-bold">{KIND_LABELS[event.kind]}</span>
                 <span className="text-gray-500 text-xs ml-2">
                   ({new Date(event.created_at * 1000).toLocaleString()})
                 </span>
@@ -161,6 +231,8 @@ export default function EscrowEventsList({
                 </button>
               ))}
             </div>
+            <button onClick={() => albyZap(event.id)}>albyZap</button>
+            <button onClick={() => albyZapNWC(event.id)}>NWC</button>
 
             <div className="text-xs text-gray-500 space-y-1">
               <div
@@ -171,12 +243,9 @@ export default function EscrowEventsList({
               </div>
               <div
                 className="cursor-pointer hover:text-gray-700"
-                onClick={() =>
-                  navigator.clipboard.writeText(event.pubkey)
-                }
+                onClick={() => navigator.clipboard.writeText(event.pubkey)}
               >
-                Pubkey:{" "}
-                <span className="font-mono">{event.pubkey}</span>
+                Pubkey: <span className="font-mono">{event.pubkey}</span>
               </div>
             </div>
           </div>
