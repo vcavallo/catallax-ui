@@ -72,6 +72,7 @@ const renderInvoiceDialog = ({
   invoice,
   relays,
   buttonColor,
+  onZapComplete,
 }) => {
   const cachedLightningUri = getCachedLightningUri();
   const options = [
@@ -122,13 +123,47 @@ const renderInvoiceDialog = ({
   );
   const ctaButtonEl = invoiceDialog.querySelector(".cta-button");
   const overlayEl = qrCodeEl.querySelector(".overlay");
+
+  console.log("Setting up listenForZapReceipt in renderInvoiceDialog");
+  console.log("Setting up listenForZapReceipt in renderInvoiceDialog");
   const closePool = listenForZapReceipt({
     relays,
     invoice,
-    onSuccess: () => {
-      invoiceDialog.close();
+    onSuccess: (zapReceipt) => {
+      console.log("View.js onSuccess handler called with receipt:", zapReceipt);
+      
+      // First close the dialog
+      try {
+        console.log("About to close invoice dialog");
+        if (invoiceDialog && typeof invoiceDialog.close === 'function') {
+          invoiceDialog.close();
+          console.log("Successfully closed invoice dialog");
+        } else {
+          console.error("Invoice dialog is not available or close is not a function", {
+            dialogExists: !!invoiceDialog,
+            closeIsFunction: typeof invoiceDialog?.close === 'function'
+          });
+        }
+      } catch (err) {
+        console.error("Error closing dialog:", err);
+      }
+
+      // Then handle the callback
+      try {
+        if (onZapComplete) {
+          console.log("About to call onZapComplete");
+          onZapComplete(zapReceipt);
+          console.log("Successfully called onZapComplete");
+        } else {
+          console.log("No onZapComplete provided");
+        }
+      } catch (err) {
+        console.error("Error in onZapComplete handler:", err);
+      }
     },
   });
+  console.log("Finished setting up listenForZapReceipt");
+  console.log("Finished setting up listenForZapReceipt");
 
   new QRCode(qrCodeEl, { text: invoice, quietZone: 10 });
 
@@ -144,8 +179,17 @@ const renderInvoiceDialog = ({
   });
 
   invoiceDialog.addEventListener("close", function () {
-    closePool();
-    invoiceDialog.remove();
+    console.log("Dialog close event triggered");
+    try {
+      closePool();
+      console.log("Pool closed");
+      if (invoiceDialog && invoiceDialog.parentNode) {
+        invoiceDialog.remove();
+        console.log("Dialog removed from DOM");
+      }
+    } catch (err) {
+      console.error("Error in dialog close handler:", err);
+    }
   });
 
   invoiceDialog
@@ -163,12 +207,17 @@ const renderAmountDialog = async ({
   relays,
   buttonColor,
   anon,
+  onZapComplete,
 }) => {
   const truncateNip19Entity = (hex) =>
     `${hex.substring(0, 12)}...${hex.substring(npub.length - 12)}`;
   const normalizedRelays = relays
     ? relays.split(",")
-    : ["wss://relay.nostr.band", "wss://relay.damus.io", "wss://nos.lol"];
+    : [
+        "wss://relay.nostr.band",
+        "wss://relay.damus.io",
+        "wss://nos.lol",
+      ];
 
   const authorId = decodeNpub(npub);
   const metadataPromise = getProfileMetadata(authorId);
@@ -176,9 +225,8 @@ const renderAmountDialog = async ({
     "https://pbs.twimg.com/profile_images/1604195803748306944/LxHDoJ7P_400x400.jpg";
 
   const getDialogHeader = async () => {
-    const { picture, display_name, name } = extractProfileMetadataContent(
-      await metadataPromise
-    );
+    const { picture, display_name, name } =
+      extractProfileMetadataContent(await metadataPromise);
     const userAvatar = picture || nostrichAvatar;
 
     return `
@@ -233,9 +281,15 @@ const renderAmountDialog = async ({
     ".preset-zap-options-container"
   );
   const form = amountDialog.querySelector("form");
-  const amountInput = amountDialog.querySelector('input[name="amount"]');
-  const commentInput = amountDialog.querySelector('input[name="comment"]');
-  const zapButtton = amountDialog.querySelector('button[type="submit"]');
+  const amountInput = amountDialog.querySelector(
+    'input[name="amount"]'
+  );
+  const commentInput = amountDialog.querySelector(
+    'input[name="comment"]'
+  );
+  const zapButtton = amountDialog.querySelector(
+    'button[type="submit"]'
+  );
   const dialogHeaderContainer = amountDialog.querySelector(
     ".dialog-header-container"
   );
@@ -304,14 +358,41 @@ const renderAmountDialog = async ({
         anon,
       });
 
+      const handleWebLNPayment = async () => {
+        try {
+          console.log("WebLN detected, attempting to use it");
+          await window.webln.enable();
+          await window.webln.sendPayment(invoice);
+          console.log("WebLN payment successful");
+          
+          // For WebLN, handle success immediately
+          console.log("WebLN payment successful");
+          amountDialog.close();
+          
+          if (onZapComplete) {
+            onZapComplete({ 
+              kind: 9735,
+              tags: [["bolt11", invoice]],
+              content: "WebLN payment successful"
+            });
+          }
+        } catch (e) {
+          console.log("WebLN failed, falling back to invoice dialog", e);
+          return false;
+        }
+        return true;
+      };
+
       const showInvoiceDialog = async () => {
         const invoiceDialog = renderInvoiceDialog({
           dialogHeader: await getDialogHeader(),
           invoice,
           relays: normalizedRelays,
           buttonColor,
+          onZapComplete,
         });
-        const openWalletButton = invoiceDialog.querySelector(".cta-button");
+        const openWalletButton =
+          invoiceDialog.querySelector(".cta-button");
 
         amountDialog.close();
         invoiceDialog.showModal();
@@ -319,15 +400,12 @@ const renderAmountDialog = async ({
       };
 
       if (window.webln) {
-        try {
-          await window.webln.enable();
-          await window.webln.sendPayment(invoice);
-          amountDialog.close();
-        } catch (e) {
-          showInvoiceDialog();
+        const webLNSuccess = await handleWebLNPayment();
+        if (!webLNSuccess) {
+          await showInvoiceDialog();
         }
       } else {
-        showInvoiceDialog();
+        await showInvoiceDialog();
       }
     } catch (error) {
       handleError(error);
@@ -366,6 +444,7 @@ export const init = async ({
   cachedAmountDialog,
   buttonColor,
   anon,
+  onZapComplete,
 }) => {
   let amountDialog = cachedAmountDialog;
   try {
@@ -376,6 +455,7 @@ export const init = async ({
         relays,
         buttonColor,
         anon,
+        onZapComplete,
       });
     }
     amountDialog.showModal();
@@ -394,11 +474,14 @@ export const init = async ({
   }
 };
 
-export const initTarget = (targetEl) => {
+export const initTarget = (targetEl, onZapComplete) => {
   let cachedAmountDialog = null;
   let cachedParams = null;
 
+  console.log("nostr-zap: Initializing target with onZapComplete:", onZapComplete);
+
   targetEl.addEventListener("click", async function () {
+    console.log("nostr-zap: Button clicked");
     const npub = targetEl.getAttribute("data-npub");
     const noteId = targetEl.getAttribute("data-note-id");
     const relays = targetEl.getAttribute("data-relays");
@@ -411,14 +494,25 @@ export const initTarget = (targetEl) => {
         cachedParams.noteId !== noteId ||
         cachedParams.relays !== relays ||
         cachedParams.buttonColor !== buttonColor ||
-        cachedParams.anon !== anon
+        cachedParams.anon !== anon ||
+        cachedParams.onZapComplete !== onZapComplete  // Add this check
       ) {
+        console.log("Cache invalidated due to param change");
         cachedAmountDialog = null;
       }
     }
 
-    cachedParams = { npub, noteId, relays, buttonColor, anon };
+    cachedParams = {
+      npub,
+      noteId,
+      relays,
+      buttonColor,
+      anon,
+      onZapComplete,
+    };
+    console.log("Cache params updated:", cachedParams);
 
+    console.log("About to initialize dialog");
     cachedAmountDialog = await init({
       npub,
       noteId,
@@ -426,12 +520,15 @@ export const initTarget = (targetEl) => {
       cachedAmountDialog,
       buttonColor,
       anon,
+      onZapComplete,
     });
   });
 };
 
 export const initTargets = (selector) => {
-  document.querySelectorAll(selector || "[data-npub]").forEach(initTarget);
+  document
+    .querySelectorAll(selector || "[data-npub]")
+    .forEach(initTarget);
 };
 
 export const injectCSS = () => {

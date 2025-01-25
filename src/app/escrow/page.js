@@ -85,6 +85,9 @@ function EscrowDashboard() {
       <ZapComponent
         npub="npub19ma2w9dmk3kat0nt0k5dwuqzvmg3va9ezwup0zkakhpwv0vcwvcsg8axkl"
         relays="wss://nos.lol,ws://localhost:3334"
+        onZapComplete={(event) => {
+          console.log("Zap completed!", event);
+        }}
       />
 
       {/* Role Selection */}

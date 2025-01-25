@@ -90,6 +90,20 @@ A minimal Nostr web client built with Next.js 13+ (App Router), React, and Tailw
 ## Dependencies
 
 - @nostr-dev-kit/ndk: Nostr protocol implementation (replaces nostr-tools)
+- nostr-zap: Zap widget library
+  - Handles both WebLN and QR code payment flows
+  - WebLN payments complete immediately without waiting for zap receipt
+  - QR code payments wait for zap receipt before completing
+  - WebLN payments should still listen for zap receipt with fallback to synthetic event
+  - Always close subscription pools to prevent memory leaks
+  - WebLN payments complete immediately but zap receipts may be delayed or missing
+  - WebLN payments complete immediately without waiting for zap receipt
+  - QR code payments wait for zap receipt before completing
+  - React strict mode causes double mounting - use initialization flags to prevent duplicate setup
+  - Callbacks must be passed through all intermediate functions in the initialization chain
+  - Components using WebLN must handle both success and fallback paths
+  - React strict mode causes double mounting - use initialization flags to prevent duplicate setup
+  - Callbacks must be passed through all intermediate functions in the initialization chain
   - Events must be created with `new NDKEvent(ndk, eventData)` 
   - Events must be published with `event.publish()`
 - nostr-zap: Zap widget library

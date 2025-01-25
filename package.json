@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.11.0",
+    "easyqrcodejs": "^4.4.13",
     "next": "15.1.6",
     "nostr-tools": "^1.17.0",
-    "nostr-zap": "^1.2.0",
+    "nostr-zap": "file:./nostr-zap",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
